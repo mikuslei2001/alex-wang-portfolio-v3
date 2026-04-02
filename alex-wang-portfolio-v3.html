@@ -1,0 +1,1400 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Alex Wang — 资深 UI/UX 设计师</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Mono:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --acid: #C8FF00;
+    --dark: #0a0a0a;
+    --mid: #141414;
+    --border: #222;
+    --muted: #555;
+    --white: #f0f0f0;
+  }
+
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--dark);
+    color: var(--white);
+    font-family: 'DM Sans', sans-serif;
+    overflow-x: hidden;
+    cursor: none;
+  }
+
+  /* ── Particle Canvas ── */
+  #particle-canvas {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.45;
+  }
+
+  /* ── Cursor ── */
+  #cursor {
+    position: fixed;
+    width: 12px; height: 12px;
+    background: var(--acid);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 9999;
+    transform: translate(-50%, -50%);
+    transition: transform 0.1s ease;
+    mix-blend-mode: difference;
+  }
+  #cursor-ring {
+    position: fixed;
+    width: 40px; height: 40px;
+    border: 1px solid var(--acid);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 9998;
+    transform: translate(-50%, -50%);
+    transition: all 0.15s ease;
+    opacity: 0.5;
+  }
+
+  /* Noise overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 1;
+    opacity: 0.3;
+  }
+
+  /* z-index stacking above canvas */
+  nav, .hero, .marquee-wrap, section, .stats-strip,
+  .contact-section, #loader, #back-to-top { position: relative; z-index: 2; }
+
+  /* ── NAV ── */
+  nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 24px 48px;
+  }
+  nav::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to bottom, rgba(10,10,10,0.92), transparent);
+    z-index: -1;
+    pointer-events: none;
+  }
+  .nav-logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 18px; letter-spacing: 3px;
+    color: var(--white); text-decoration: none;
+  }
+  .nav-links { display: flex; gap: 40px; list-style: none; }
+  .nav-links a {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px; letter-spacing: 2px; text-transform: uppercase;
+    color: var(--muted); text-decoration: none;
+    transition: color 0.3s; position: relative;
+  }
+  .nav-links a::after {
+    content: ''; position: absolute;
+    bottom: -2px; left: 0; width: 0; height: 1px;
+    background: var(--acid); transition: width 0.3s;
+  }
+  .nav-links a:hover { color: var(--acid); }
+  .nav-links a:hover::after { width: 100%; }
+  .nav-cta {
+    background: var(--acid); color: var(--dark) !important;
+    padding: 8px 20px; font-weight: 700;
+    transition: background 0.3s, color 0.3s !important;
+  }
+  .nav-cta::after { display: none !important; }
+  .nav-cta:hover { background: var(--white) !important; color: var(--dark) !important; }
+
+  /* ── HERO ── */
+  .hero {
+    min-height: 100vh;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    position: relative; overflow: hidden;
+    padding: 120px 48px 80px;
+  }
+  .hero-bg-text {
+    position: absolute;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(120px, 20vw, 280px);
+    color: transparent;
+    -webkit-text-stroke: 1px rgba(200,255,0,0.05);
+    user-select: none; pointer-events: none;
+    white-space: nowrap;
+    animation: drift 20s linear infinite;
+  }
+  @keyframes drift {
+    0% { transform: translateX(-5%); }
+    50% { transform: translateX(5%); }
+    100% { transform: translateX(-5%); }
+  }
+  .hero-name {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(80px, 15vw, 220px);
+    line-height: 0.9; text-align: center;
+    position: relative; z-index: 2;
+    color: var(--acid);
+    animation: heroIn 1.2s cubic-bezier(0.16, 1, 0.3, 1) both;
+    letter-spacing: -2px;
+  }
+  @keyframes heroIn {
+    from { opacity: 0; transform: translateY(80px) skewY(3deg); }
+    to   { opacity: 1; transform: translateY(0) skewY(0); }
+  }
+
+  /* FIX 1: hero-subtitle — 两行高度，line-height 收紧 */
+  .hero-subtitle {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    letter-spacing: 0.2px;
+    color: var(--muted);
+    text-align: center;
+    margin-top: 28px;
+    position: relative; z-index: 2;
+    animation: fadeUp 1s 0.6s both;
+    max-width: 720px;
+    line-height: 1.55;   /* 原来 2，改为 1.55 → 两行 */
+  }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .hero-scroll {
+    position: absolute; bottom: 40px; left: 50%;
+    transform: translateX(-50%);
+    display: flex; flex-direction: column; align-items: center; gap: 8px;
+    animation: fadeUp 1s 1s both; z-index: 2;
+  }
+  .hero-scroll span {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px; letter-spacing: 3px; text-transform: uppercase;
+    color: var(--muted);
+  }
+  .scroll-line {
+    width: 1px; height: 60px;
+    background: linear-gradient(to bottom, var(--acid), transparent);
+    animation: scrollPulse 2s ease-in-out infinite;
+  }
+  @keyframes scrollPulse {
+    0%, 100% { opacity: 0.3; transform: scaleY(0.8); }
+    50%       { opacity: 1;   transform: scaleY(1); }
+  }
+
+  /* ── MARQUEE ── */
+  .marquee-wrap {
+    overflow: hidden;
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 0; background: var(--mid);
+  }
+  .marquee-track {
+    display: flex; white-space: nowrap;
+    animation: marquee 18s linear infinite;
+  }
+  .marquee-track.reverse { animation-direction: reverse; }
+  @keyframes marquee {
+    0%   { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+  }
+  .marquee-item {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 56px; letter-spacing: 4px; padding: 0 40px;
+    color: transparent; -webkit-text-stroke: 1px var(--muted);
+    transition: color 0.3s, -webkit-text-stroke-color 0.3s; cursor: default;
+  }
+  .marquee-item:hover { color: var(--acid); -webkit-text-stroke-color: var(--acid); }
+  .marquee-dot { color: var(--acid); -webkit-text-stroke: none; font-size: 20px; align-self: center; }
+
+  /* ── SECTIONS ── */
+  section { padding: 100px 48px; max-width: 1200px; margin: 0 auto; }
+  .section-label {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px; letter-spacing: 6px; text-transform: uppercase;
+    color: var(--acid); margin-bottom: 48px;
+    display: flex; align-items: center; gap: 16px;
+  }
+  .section-label::before {
+    content: ''; display: block;
+    width: 30px; height: 2px; background: var(--acid);
+  }
+
+  /* FIX 2: Contact section-label 两侧各一条线，居中 */
+  .contact-label {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px; letter-spacing: 6px; text-transform: uppercase;
+    color: var(--acid); margin-bottom: 40px;
+    display: flex; align-items: center; justify-content: center; gap: 16px;
+  }
+  .contact-label::before,
+  .contact-label::after {
+    content: ''; display: block;
+    width: 30px; height: 2px; background: var(--acid);
+    flex-shrink: 0;
+  }
+
+  /* ── ABOUT ── */
+  .about-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 80px; align-items: start; }
+  .about-text-block { margin-bottom: 28px; }
+  .about-text-title { font-size: 17px; font-weight: 700; color: var(--white); margin-bottom: 8px; letter-spacing: 0.5px; }
+  .about-text-body { font-size: 15px; line-height: 1.9; color: #888; }
+  .skills-list { display: flex; flex-direction: column; gap: 16px; }
+  .skill-item { display: flex; flex-direction: column; gap: 8px; }
+  .skill-header { display: flex; justify-content: space-between; align-items: baseline; }
+  .skill-name { font-family: 'Space Mono', monospace; font-size: 12px; letter-spacing: 2px; text-transform: uppercase; color: var(--white); }
+  .skill-pct { font-family: 'Bebas Neue', sans-serif; font-size: 28px; color: var(--acid); }
+  .skill-bar { height: 2px; background: var(--border); position: relative; overflow: hidden; }
+  .skill-fill {
+    position: absolute; top: 0; left: 0; bottom: 0;
+    background: var(--acid); width: 0;
+    transition: width 1.5s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 0 12px var(--acid);
+  }
+
+  /* ── STATS ── */
+  .stats-strip {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    border: 1px solid var(--border); overflow: hidden;
+  }
+  .stat-item {
+    padding: 48px; border-right: 1px solid var(--border);
+    position: relative; overflow: hidden; transition: background 0.4s;
+  }
+  .stat-item:last-child { border-right: none; }
+  .stat-item::before {
+    content: ''; position: absolute; inset: 0;
+    background: var(--acid); transform: translateY(101%);
+    transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1); z-index: 0;
+  }
+  .stat-item:hover::before { transform: translateY(0); }
+  .stat-item:hover .stat-num { color: var(--dark); }
+  .stat-item:hover .stat-label { color: var(--dark); }
+  .stat-num { font-family: 'Bebas Neue', sans-serif; font-size: 80px; color: var(--acid); line-height: 1; position: relative; z-index: 1; transition: color 0.3s; }
+  .stat-label { font-family: 'DM Sans', sans-serif; font-size: 13px; letter-spacing: 1px; color: var(--muted); margin-top: 8px; position: relative; z-index: 1; transition: color 0.3s; }
+
+  /* ── PROJECTS: 图片网格 ──
+     FIX 3: 去掉底部灰色色块(原 projects-grid background)
+     FIX 4&5: 灯箱全新方案见下方 lightbox 样式
+  */
+  .projects-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 3px;
+    background: transparent;  /* FIX 3: 不再是 var(--border) */
+  }
+  .project-card {
+    position: relative; overflow: hidden;
+    cursor: none; aspect-ratio: 1 / 1;
+    background: var(--mid);
+  }
+  .project-img {
+    width: 100%; height: 100%; object-fit: cover; display: block;
+    transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .project-card:hover .project-img { transform: scale(1.06); }
+  /* 毛玻璃悬停层 */
+  .project-hover {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 12px;
+    opacity: 0;
+    transition: opacity 0.35s ease, backdrop-filter 0.35s ease, background 0.35s ease;
+    backdrop-filter: blur(0px);
+    background: rgba(10,10,10,0);
+    z-index: 3;
+  }
+  .project-card:hover .project-hover {
+    opacity: 1;
+    backdrop-filter: blur(6px);
+    background: rgba(10,10,10,0.35);
+  }
+  .project-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 20px; letter-spacing: 2px; color: var(--acid);
+    text-align: center; padding: 0 8px;
+    transform: translateY(8px); transition: transform 0.35s ease;
+  }
+  .project-card:hover .project-title { transform: translateY(0); }
+  .project-view-btn {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px; letter-spacing: 3px; text-transform: uppercase;
+    color: var(--dark); background: var(--acid);
+    border: none; padding: 8px 20px; cursor: none;
+    transform: translateY(8px);
+    transition: transform 0.35s ease 0.05s, background 0.2s;
+  }
+  .project-card:hover .project-view-btn { transform: translateY(0); }
+  .project-view-btn:hover { background: var(--white); }
+
+  /* ── LIGHTBOX 全新方案 ──
+     FIX 4: 关闭按钮在网页右上角（fixed top-right）
+     FIX 5: 工具栏悬浮在图片上方（absolute bottom of viewport）
+     背景纯净：无带边框的黑色box，只有蒙版+背光
+  */
+  #lightbox {
+    position: fixed; inset: 0; z-index: 9500;
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0; visibility: hidden;
+    transition: opacity 0.4s, visibility 0.4s;
+  }
+  #lightbox.open { opacity: 1; visibility: visible; }
+
+  /* 点击背景关闭 */
+  .lb-backdrop {
+    position: absolute; inset: 0;
+    background: rgba(0,0,0,0.9);
+    backdrop-filter: blur(14px);
+    cursor: none;
+  }
+
+  /* 图片本身，居中，无任何容器边框 */
+  #lb-img {
+    position: relative; z-index: 1;
+    display: block;
+    max-width: 88vw; max-height: 86vh;
+    object-fit: contain;
+    transform-origin: center center;
+    transition: transform 0.2s ease;
+    user-select: none; -webkit-user-drag: none;
+    /* 背光效果 */
+    box-shadow: 0 0 80px rgba(200,255,0,0.12), 0 30px 100px rgba(0,0,0,0.8);
+    pointer-events: none;
+  }
+
+  /* FIX 4: 关闭按钮 → 整个网页右上角 */
+  #lb-close {
+    position: fixed;
+    top: 24px; right: 40px;
+    z-index: 9600;
+    width: 40px; height: 40px;
+    background: rgba(10,10,10,0.7);
+    border: 1px solid var(--muted);
+    color: var(--muted);
+    font-size: 18px; cursor: none;
+    display: none;
+    align-items: center; justify-content: center;
+    transition: border-color 0.2s, color 0.2s;
+  }
+  #lb-close.show { display: flex; }
+  #lb-close:hover { border-color: var(--acid); color: var(--acid); }
+
+  /* FIX 5: 工具栏 → fixed 底部居中，覆盖在图片上 */
+  #lb-toolbar {
+    position: fixed;
+    bottom: 36px; left: 50%;
+    transform: translateX(-50%);
+    z-index: 9600;
+    display: none;
+    gap: 10px; align-items: center;
+  }
+  #lb-toolbar.show { display: flex; }
+  .lb-btn {
+    width: 40px; height: 40px;
+    background: rgba(10,10,10,0.75);
+    border: 1px solid var(--border);
+    color: var(--muted); font-size: 18px; cursor: none;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s; font-family: 'Space Mono', monospace;
+    backdrop-filter: blur(8px);
+  }
+  .lb-btn:hover { border-color: var(--acid); color: var(--acid); background: rgba(200,255,0,0.08); }
+  .lb-scale-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px; color: var(--muted);
+    letter-spacing: 1px; min-width: 44px; text-align: center;
+    background: rgba(10,10,10,0.75);
+    padding: 0 6px; height: 40px;
+    display: flex; align-items: center; justify-content: center;
+    backdrop-filter: blur(8px);
+  }
+
+  /* ── EXPERIENCE ── */
+  .exp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; background: var(--border); }
+  .exp-item { background: var(--mid); padding: 40px; position: relative; overflow: hidden; transition: background 0.3s; }
+  .exp-item::after { content: ''; position: absolute; top: 0; left: 0; width: 2px; height: 0; background: var(--acid); transition: height 0.5s cubic-bezier(0.16,1,0.3,1); }
+  .exp-item:hover::after { height: 100%; }
+  .exp-period { font-family: 'Space Mono', monospace; font-size: 10px; letter-spacing: 2px; color: var(--acid); margin-bottom: 8px; }
+  .exp-title { font-family: 'Bebas Neue', sans-serif; font-size: 28px; letter-spacing: 1px; margin-bottom: 4px; }
+  .exp-company { font-size: 12px; color: var(--muted); margin-bottom: 16px; font-family: 'Space Mono', monospace; }
+  .exp-desc { font-size: 13px; line-height: 1.9; color: #666; }
+  .exp-desc ul { list-style: none; padding: 0; }
+  .exp-desc ul li { padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.04); }
+  .exp-desc ul li:last-child { border-bottom: none; }
+
+  /* ── SKILLS RINGS ──
+     FIX 6: overflow visible，让 drop-shadow 不被裁切
+  */
+  .radar-wrap { display: flex; justify-content: center; gap: 60px; flex-wrap: wrap; margin-top: 48px; }
+  .skill-ring { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+  .ring-svg {
+    width: 110px; height: 110px;   /* 比 100 稍大，给 glow 留空间 */
+    transform: rotate(-90deg);
+    overflow: visible;             /* FIX 6: 关键 */
+  }
+  .ring-bg { fill: none; stroke: var(--border); stroke-width: 4; }
+  .ring-fill {
+    fill: none; stroke: var(--acid); stroke-width: 4; stroke-linecap: round;
+    stroke-dasharray: 251; stroke-dashoffset: 251;
+    transition: stroke-dashoffset 1.5s cubic-bezier(0.16, 1, 0.3, 1);
+    filter: drop-shadow(0 0 8px var(--acid));  /* 略加大 */
+  }
+  .ring-label { font-family: 'Space Mono', monospace; font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); text-align: center; }
+  .ring-pct { font-family: 'Bebas Neue', sans-serif; font-size: 20px; color: var(--acid); margin-top: -6px; }
+
+  /* ── EDUCATION ── */
+  .edu-list { display: flex; flex-direction: column; }
+  .edu-item { display: grid; grid-template-columns: 1fr 3fr 1fr; gap: 32px; align-items: start; padding: 32px 0; border-bottom: 1px solid var(--border); transition: all 0.3s; }
+  .edu-item:hover { padding-left: 16px; }
+  .edu-period { font-family: 'Space Mono', monospace; font-size: 11px; color: var(--muted); padding-top: 4px; }
+  .edu-school { font-family: 'Bebas Neue', sans-serif; font-size: 22px; letter-spacing: 1px; margin-bottom: 4px; }
+  .edu-degree { font-size: 13px; color: var(--muted); }
+  .edu-badge { background: var(--border); color: var(--acid); font-family: 'Space Mono', monospace; font-size: 10px; letter-spacing: 1px; padding: 6px 12px; text-align: center; align-self: start; justify-self: end; transition: background 0.3s; }
+  .edu-item:hover .edu-badge { background: var(--acid); color: var(--dark); }
+
+  /* ── CONTACT ── */
+  .contact-section {
+    min-height: 60vh; display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    text-align: center; position: relative; overflow: hidden;
+    padding: 100px 48px; border-top: 1px solid var(--border);
+  }
+  .contact-big {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(60px, 10vw, 140px); line-height: 0.9;
+    color: transparent; -webkit-text-stroke: 1px var(--acid);
+    transition: all 0.5s; cursor: none;
+  }
+  .contact-big:hover { color: var(--acid); text-shadow: 0 0 100px rgba(200,255,0,0.4); }
+  .contact-links { display: flex; flex-direction: column; align-items: center; gap: 14px; margin-top: 36px; }
+  .contact-email {
+    font-family: 'Space Mono', monospace; font-size: 14px; letter-spacing: 2px;
+    color: var(--muted); text-decoration: none;
+    border-bottom: 1px solid transparent; transition: all 0.3s; padding-bottom: 4px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .contact-email:hover { color: var(--acid); border-color: var(--acid); }
+  .contact-icon {
+    display: inline-flex; align-items: center; justify-content: center;
+    font-family: 'Bebas Neue', sans-serif; font-size: 12px;
+    color: var(--acid); border: 1px solid var(--acid);
+    padding: 1px 6px; letter-spacing: 1px; flex-shrink: 0;
+  }
+  .contact-tg {
+    font-family: 'Space Mono', monospace; font-size: 13px; letter-spacing: 2px;
+    color: var(--muted); text-decoration: none;
+    display: flex; align-items: center; gap: 10px; transition: color 0.3s;
+  }
+  .contact-tg:hover { color: var(--acid); }
+
+  /* ── Glitch ── */
+  .glitch { position: relative; }
+  .glitch:hover::before, .glitch:hover::after {
+    content: attr(data-text); position: absolute; top: 0; left: 0; color: var(--acid);
+  }
+  .glitch:hover::before { animation: glitch1 0.3s steps(2) infinite; clip-path: polygon(0 0,100% 0,100% 45%,0 45%); color:#ff006a; opacity:0.7; }
+  .glitch:hover::after  { animation: glitch2 0.3s steps(2) infinite; clip-path: polygon(0 60%,100% 60%,100% 100%,0 100%); color:#00d4ff; opacity:0.7; }
+  @keyframes glitch1 { 0%{transform:translate(-3px,0)} 100%{transform:translate(3px,0)} }
+  @keyframes glitch2 { 0%{transform:translate(3px,0)}  100%{transform:translate(-3px,0)} }
+
+  /* ── Scroll reveal ── */
+  .reveal { opacity: 0; transform: translateY(40px); transition: opacity 0.8s ease, transform 0.8s cubic-bezier(0.16,1,0.3,1); }
+  .reveal.visible { opacity: 1; transform: translateY(0); }
+
+  /* ── Loader ── */
+  #loader { position: fixed; inset: 0; background: var(--dark); z-index: 9990; display: flex; align-items: center; justify-content: center; transition: opacity 0.8s, visibility 0.8s; }
+  #loader.hidden { opacity: 0; visibility: hidden; }
+  .loader-text { font-family: 'Bebas Neue', sans-serif; font-size: 72px; color: var(--acid); letter-spacing: 8px; animation: loaderPulse 0.5s ease-in-out infinite alternate; }
+  @keyframes loaderPulse { from{opacity:0.3} to{opacity:1} }
+
+  /* ── Back to top ── */
+  #back-to-top {
+    position: fixed; bottom: 40px; right: 40px;
+    width: 48px; height: 48px; background: var(--acid);
+    color: var(--dark); border: none; cursor: none;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Bebas Neue', sans-serif; font-size: 22px;
+    z-index: 500; opacity: 0; transform: translateY(20px);
+    transition: opacity 0.4s, transform 0.4s;
+    box-shadow: 0 0 20px rgba(200,255,0,0.3);
+  }
+  #back-to-top.visible { opacity: 1; transform: translateY(0); }
+  #back-to-top:hover { background: var(--white); }
+
+  @media (max-width: 768px) {
+    nav { padding: 20px 24px; }
+    .nav-links { display: none; }
+    section { padding: 60px 24px; }
+    .about-grid, .exp-grid { grid-template-columns: 1fr; }
+    .stats-strip { grid-template-columns: 1fr; }
+    .projects-grid { grid-template-columns: repeat(2, 1fr); }
+    .edu-item { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<canvas id="particle-canvas"></canvas>
+<div id="loader"><div class="loader-text">AW</div></div>
+<div id="cursor"></div>
+<div id="cursor-ring"></div>
+<button id="back-to-top" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑</button>
+
+<!-- LIGHTBOX (FIX 4+5) -->
+<div id="lightbox">
+  <div class="lb-backdrop" id="lb-backdrop"></div>
+  <img id="lb-img" src="" alt="">
+</div>
+<!-- 关闭按钮：网页右上角 fixed -->
+<button id="lb-close">✕</button>
+<!-- 工具栏：底部 fixed，覆盖在图片上 -->
+<div id="lb-toolbar">
+  <button class="lb-btn" id="lb-zoom-out">−</button>
+  <span class="lb-scale-label" id="lb-scale-label">100%</span>
+  <button class="lb-btn" id="lb-zoom-in">+</button>
+  <button class="lb-btn" id="lb-zoom-reset" style="font-size:12px;letter-spacing:1px;">1:1</button>
+</div>
+
+<!-- NAV -->
+<nav>
+  <a href="#" class="nav-logo">ALEX DESIGN</a>
+  <ul class="nav-links">
+    <li><a href="#about">About</a></li>
+    <li><a href="#projects">Work</a></li>
+    <li><a href="#experience">Experience</a></li>
+    <li><a href="#education">Education</a></li>
+    <li><a href="#contact" class="nav-cta">联系我</a></li>
+  </ul>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-bg-text">DESIGN</div>
+  <h1 class="hero-name glitch" data-text="ALEX WANG">ALEX<br>WANG</h1>
+  <p class="hero-subtitle">我是 Alex Wang，一位资深的 UI/UX 设计师，十多年来热衷于创造数字体验和解决方案，具备多行业跨度实战经验，App、移动端H5、PC客户端及网页全链路设计</p>
+  <div class="hero-scroll"><span>Scroll</span><div class="scroll-line"></div></div>
+</div>
+
+<!-- MARQUEE 1 -->
+<div class="marquee-wrap">
+  <div class="marquee-track">
+    <span class="marquee-item">PHOTOSHOP</span><span class="marquee-dot">✦</span>
+    <span class="marquee-item">ILLUSTRATOR</span><span class="marquee-dot">✦</span>
+    <span class="marquee-item">FIGMA</span><span class="marquee-dot">✦</span>
+    <span class="marquee-item">XD</span><span class="marquee-dot">✦</span>
+    <span class="marquee-item">COMFYUI</span><span class="marquee-dot">✦</span>
+    <span class="marquee-item">CLAUDE CODE</span><span class="marquee-dot">✦</span>
+    <span class="marquee-item">PHOTOSHOP</span><span class="marquee-dot">✦</span>
+    <span class="marquee-item">ILLUSTRATOR</span><span class="marquee-dot">✦</span>
+    <span class="marquee-item">FIGMA</span><span class="marquee-dot">✦</span>
+    <span class="marquee-item">XD</span><span class="marquee-dot">✦</span>
+    <span class="marquee-item">COMFYUI</span><span class="marquee-dot">✦</span>
+    <span class="marquee-item">CLAUDE CODE</span><span class="marquee-dot">✦</span>
+  </div>
+</div>
+
+<!-- ABOUT -->
+<section id="about">
+  <div class="section-label reveal">About</div>
+  <div class="about-grid">
+    <div class="about-text reveal">
+      <div class="about-text-block">
+        <div class="about-text-title">全链路设计覆盖</div>
+        <div class="about-text-body">涵盖核心产品 UI / Web 视觉、交互、图标体系，以及 brand 运营物料。</div>
+      </div>
+      <div class="about-text-block">
+        <div class="about-text-title">高度商业还原</div>
+        <div class="about-text-body">与前端对接经验丰富，通过组件化思维确保视觉方案的高保真还原。</div>
+      </div>
+      <div class="about-text-block">
+        <div class="about-text-title">跨行业视野</div>
+        <div class="about-text-body">拥有金融、医疗、航空、海外游戏多领域背景，精准把控视觉调性。</div>
+      </div>
+    </div>
+    <div class="skills-list reveal" style="transition-delay:0.2s">
+      <div class="skill-item">
+        <div class="skill-header"><div class="skill-name">Photoshop</div><div class="skill-pct">90%</div></div>
+        <div class="skill-bar"><div class="skill-fill" data-pct="90"></div></div>
+      </div>
+      <div class="skill-item">
+        <div class="skill-header"><div class="skill-name">Illustrator</div><div class="skill-pct">85%</div></div>
+        <div class="skill-bar"><div class="skill-fill" data-pct="85"></div></div>
+      </div>
+      <div class="skill-item">
+        <div class="skill-header"><div class="skill-name">XD / Figma</div><div class="skill-pct">85%</div></div>
+        <div class="skill-bar"><div class="skill-fill" data-pct="85"></div></div>
+      </div>
+      <div class="skill-item">
+        <div class="skill-header"><div class="skill-name">ComfyUI</div><div class="skill-pct">80%</div></div>
+        <div class="skill-bar"><div class="skill-fill" data-pct="80"></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- STATS -->
+<div class="stats-strip reveal">
+  <div class="stat-item"><div class="stat-num" data-count="12">0+</div><div class="stat-label">设计经验</div></div>
+  <div class="stat-item"><div class="stat-num" data-count="8">0+</div><div class="stat-label">行业跨度</div></div>
+  <div class="stat-item"><div class="stat-num" data-count="380">0+</div><div class="stat-label">行业作品案例</div></div>
+</div>
+
+<!-- MARQUEE 2 -->
+<div class="marquee-wrap" style="margin-top:2px;">
+  <div class="marquee-track reverse">
+    <span class="marquee-item">PHOTOSHOP</span><span class="marquee-dot">✦</span>
+    <span class="marquee-item">ILLUSTRATOR</span><span class="marquee-dot">✦</span>
+    <span class="marquee-item">FIGMA</span><span class="marquee-dot">✦</span>
+    <span class="marquee-item">XD</span><span class="marquee-dot">✦</span>
+    <span class="marquee-item">COMFYUI</span><span class="marquee-dot">✦</span>
+    <span class="marquee-item">CLAUDE CODE</span><span class="marquee-dot">✦</span>
+    <span class="marquee-item">PHOTOSHOP</span><span class="marquee-dot">✦</span>
+    <span class="marquee-item">ILLUSTRATOR</span><span class="marquee-dot">✦</span>
+    <span class="marquee-item">FIGMA</span><span class="marquee-dot">✦</span>
+    <span class="marquee-item">XD</span><span class="marquee-dot">✦</span>
+    <span class="marquee-item">COMFYUI</span><span class="marquee-dot">✦</span>
+    <span class="marquee-item">CLAUDE CODE</span><span class="marquee-dot">✦</span>
+  </div>
+</div>
+
+<!-- PROJECTS -->
+<section id="projects" style="max-width:100%;padding-left:0;padding-right:0;">
+  <div style="max-width:1200px;margin:0 auto;padding:0 48px;">
+    <div class="section-label reveal">Selected Work</div>
+  </div>
+  <!--
+    添加图片：复制任意 .project-card 块，修改 data-title 和 src 即可
+  -->
+  <div class="projects-grid reveal" id="projects-grid">
+
+    <div class="project-card" data-title="宣传物料">
+      <img class="project-img" src="https://res.cloudinary.com/dqp9eckcq/image/upload/v1770193982/%E5%AE%A3%E4%BC%A0%E7%89%A9%E6%96%99_xfzlyt.png" alt="宣传物料" loading="lazy">
+      <div class="project-hover">
+        <div class="project-title">宣传物料</div>
+        <button class="project-view-btn">查 看</button>
+      </div>
+    </div>
+
+    <div class="project-card" data-title="NFT Web">
+      <img class="project-img" src="https://res.cloudinary.com/dqp9eckcq/image/upload/v1770199472/NFTweb_s3isv3.png" alt="NFT Web" loading="lazy">
+      <div class="project-hover">
+        <div class="project-title">NFT Web</div>
+        <button class="project-view-btn">查 看</button>
+      </div>
+    </div>
+
+    <div class="project-card" data-title="虚拟币 Web">
+      <img class="project-img" src="https://res.cloudinary.com/dqp9eckcq/image/upload/v1770199509/%E8%99%9A%E6%8B%9F%E5%B8%81web_pzduie.png" alt="虚拟币 Web" loading="lazy">
+      <div class="project-hover">
+        <div class="project-title">虚拟币 Web</div>
+        <button class="project-view-btn">查 看</button>
+      </div>
+    </div>
+
+    <div class="project-card" data-title="东航官网">
+      <img class="project-img" src="https://res.cloudinary.com/dqp9eckcq/image/upload/v1770199519/%E4%B8%9C%E8%88%AA%E5%AE%98%E7%BD%91_jqogqf.png" alt="东航官网" loading="lazy">
+      <div class="project-hover">
+        <div class="project-title">东航官网</div>
+        <button class="project-view-btn">查 看</button>
+      </div>
+    </div>
+
+    <div class="project-card" data-title="起名页">
+      <img class="project-img" src="https://res.cloudinary.com/dqp9eckcq/image/upload/v1770200700/%E8%B5%B7%E5%90%8D%E9%A1%B5_ja7f5x.png" alt="起名页" loading="lazy">
+      <div class="project-hover">
+        <div class="project-title">起名页</div>
+        <button class="project-view-btn">查 看</button>
+      </div>
+    </div>
+
+    <div class="project-card" data-title="首页设计">
+      <img class="project-img" src="https://res.cloudinary.com/dqp9eckcq/image/upload/v1770197603/%E9%A6%96%E9%A1%B5_tmi4os.png" alt="首页设计" loading="lazy">
+      <div class="project-hover">
+        <div class="project-title">首页设计</div>
+        <button class="project-view-btn">查 看</button>
+      </div>
+    </div>
+
+    <div class="project-card" data-title="游戏UI">
+      <img class="project-img" src="https://res.cloudinary.com/dqp9eckcq/image/upload/v1770201107/%E6%B8%B8%E6%88%8F%E6%B5%8B%E8%AF%95_qzomsv.png" alt="游戏UI" loading="lazy">
+      <div class="project-hover">
+        <div class="project-title">游戏UI</div>
+        <button class="project-view-btn">查 看</button>
+      </div>
+    </div>
+
+    <div class="project-card" data-title="游戏UI">
+      <img class="project-img" src="https://res.cloudinary.com/dqp9eckcq/image/upload/v1770199450/%E6%B8%B8%E6%88%8F%E6%B5%8B%E8%AF%952_fzicnm.png" alt="游戏UI" loading="lazy">
+      <div class="project-hover">
+        <div class="project-title">游戏UI</div>
+        <button class="project-view-btn">查 看</button>
+      </div>
+    </div>
+
+    <div class="project-card" data-title="游戏UI">
+      <img class="project-img" src="https://res.cloudinary.com/dqp9eckcq/image/upload/v1770197670/ID_axl-888_wnmolo.png" alt="游戏UI" loading="lazy">
+      <div class="project-hover">
+        <div class="project-title">游戏UI</div>
+        <button class="project-view-btn">查 看</button>
+      </div>
+    </div>
+
+    <div class="project-card" data-title="游戏UI">
+      <img class="project-img" src="https://res.cloudinary.com/dqp9eckcq/image/upload/v1770197594/%E5%9B%BE%E5%B1%82_44_reahou.png" alt="游戏UI" loading="lazy">
+      <div class="project-hover">
+        <div class="project-title">游戏UI</div>
+        <button class="project-view-btn">查 看</button>
+      </div>
+    </div>
+
+    <div class="project-card" data-title="游戏UI">
+      <img class="project-img" src="https://res.cloudinary.com/dqp9eckcq/image/upload/v1770197574/%E5%9B%BE%E5%B1%82_46_gnh5zy.png" alt="游戏UI" loading="lazy">
+      <div class="project-hover">
+        <div class="project-title">游戏UI</div>
+        <button class="project-view-btn">查 看</button>
+      </div>
+    </div>
+
+    <div class="project-card" data-title="游戏UI">
+      <img class="project-img" src="https://res.cloudinary.com/dqp9eckcq/image/upload/v1770197642/%E6%96%B0%E6%B8%B8%E6%88%8F%E9%A1%B5_kontaq.png" alt="游戏UI" loading="lazy">
+      <div class="project-hover">
+        <div class="project-title">游戏UI</div>
+        <button class="project-view-btn">查 看</button>
+      </div>
+    </div>
+
+    <div class="project-card" data-title="游戏UI">
+      <img class="project-img" src="https://res.cloudinary.com/dqp9eckcq/image/upload/v1770197673/%E6%B8%B8%E6%88%8F%E9%A1%B5_ei8yio.png" alt="游戏UI" loading="lazy">
+      <div class="project-hover">
+        <div class="project-title">游戏UI</div>
+        <button class="project-view-btn">查 看</button>
+      </div>
+    </div>
+
+    <div class="project-card" data-title="游戏UI">
+      <img class="project-img" src="https://res.cloudinary.com/dqp9eckcq/image/upload/v1770197580/%E5%9B%BE%E5%B1%82_65_o6kg4p.png" alt="游戏UI" loading="lazy">
+      <div class="project-hover">
+        <div class="project-title">游戏UI</div>
+        <button class="project-view-btn">查 看</button>
+      </div>
+    </div>
+
+    <div class="project-card" data-title="游戏UI">
+      <img class="project-img" src="https://res.cloudinary.com/dqp9eckcq/image/upload/v1770197577/%E5%9B%BE%E5%B1%82_66_a2qyl4.png" alt="游戏UI" loading="lazy">
+      <div class="project-hover">
+        <div class="project-title">游戏UI</div>
+        <button class="project-view-btn">查 看</button>
+      </div>
+    </div>
+
+    <div class="project-card" data-title="游戏UI">
+      <img class="project-img" src="https://res.cloudinary.com/dqp9eckcq/image/upload/v1770197540/%E5%9B%BE%E5%B1%82_32_ehzuep.png" alt="游戏UI" loading="lazy">
+      <div class="project-hover">
+        <div class="project-title">游戏UI</div>
+        <button class="project-view-btn">查 看</button>
+      </div>
+    </div>
+
+    <div class="project-card" data-title="游戏UI">
+      <img class="project-img" src="https://res.cloudinary.com/dqp9eckcq/image/upload/v1770197535/%E5%9B%BE%E5%B1%82_31_wlmg1b.png" alt="游戏UI" loading="lazy">
+      <div class="project-hover">
+        <div class="project-title">游戏UI</div>
+        <button class="project-view-btn">查 看</button>
+      </div>
+    </div>
+
+    <div class="project-card" data-title="游戏UI">
+      <img class="project-img" src="https://res.cloudinary.com/dqp9eckcq/image/upload/v1770197567/%E5%9B%BE%E5%B1%82_64_f5o3mh.png" alt="游戏UI" loading="lazy">
+      <div class="project-hover">
+        <div class="project-title">游戏UI</div>
+        <button class="project-view-btn">查 看</button>
+      </div>
+    </div>
+
+    <div class="project-card" data-title="游戏UI">
+      <img class="project-img" src="https://res.cloudinary.com/dqp9eckcq/image/upload/v1770197562/%E5%9B%BE%E5%B1%82_62_hk3lva.png" alt="游戏UI" loading="lazy">
+      <div class="project-hover">
+        <div class="project-title">游戏UI</div>
+        <button class="project-view-btn">查 看</button>
+      </div>
+    </div>
+
+    <div class="project-card" data-title="游戏UI">
+      <img class="project-img" src="https://res.cloudinary.com/dqp9eckcq/image/upload/v1770197529/%E7%AD%BE%E5%88%B0_hlg8g3.png" alt="游戏UI" loading="lazy">
+      <div class="project-hover">
+        <div class="project-title">游戏UI</div>
+        <button class="project-view-btn">查 看</button>
+      </div>
+    </div>
+
+    <div class="project-card" data-title="游戏UI">
+      <img class="project-img" src="https://res.cloudinary.com/dqp9eckcq/image/upload/v1770197505/%E7%AD%BE%E5%88%B0%E9%A1%B51_o5sime.png" alt="游戏UI" loading="lazy">
+      <div class="project-hover">
+        <div class="project-title">游戏UI</div>
+        <button class="project-view-btn">查 看</button>
+      </div>
+    </div>
+
+    <div class="project-card" data-title="游戏UI">
+      <img class="project-img" src="https://res.cloudinary.com/dqp9eckcq/image/upload/v1770197515/%E5%9B%BE%E5%B1%82_29_eludfn.png" alt="游戏UI" loading="lazy">
+      <div class="project-hover">
+        <div class="project-title">游戏UI</div>
+        <button class="project-view-btn">查 看</button>
+      </div>
+    </div>
+
+    <div class="project-card" data-title="游戏UI">
+      <img class="project-img" src="https://res.cloudinary.com/dqp9eckcq/image/upload/v1770197534/%E5%9B%BE%E5%B1%82_30_ayc8kk.png" alt="游戏UI" loading="lazy">
+      <div class="project-hover">
+        <div class="project-title">游戏UI</div>
+        <button class="project-view-btn">查 看</button>
+      </div>
+    </div>
+
+    <div class="project-card" data-title="游戏UI">
+      <img class="project-img" src="https://res.cloudinary.com/dqp9eckcq/image/upload/v1770197673/33_tnzuxp.png" alt="游戏UI" loading="lazy">
+      <div class="project-hover">
+        <div class="project-title">游戏UI</div>
+        <button class="project-view-btn">查 看</button>
+      </div>
+    </div>
+
+    <div class="project-card" data-title="Casino">
+      <img class="project-img" src="https://res.cloudinary.com/dqp9eckcq/image/upload/v1770197575/%E5%9B%BE%E5%B1%82_63_ygakbk.png" alt="Casino" loading="lazy">
+      <div class="project-hover">
+        <div class="project-title">Casino</div>
+        <button class="project-view-btn">查 看</button>
+      </div>
+    </div>
+
+    <div class="project-card" data-title="Casino">
+      <img class="project-img" src="https://res.cloudinary.com/dqp9eckcq/image/upload/v1770197526/%E5%9B%BE%E5%B1%82_28_c44nts.png" alt="Casino" loading="lazy">
+      <div class="project-hover">
+        <div class="project-title">Casino</div>
+        <button class="project-view-btn">查 看</button>
+      </div>
+    </div>
+
+    <div class="project-card" data-title="Casino">
+      <img class="project-img" src="https://res.cloudinary.com/dqp9eckcq/image/upload/v1770197558/%E5%9B%BE%E5%B1%82_61_nvf7pl.png" alt="Casino" loading="lazy">
+      <div class="project-hover">
+        <div class="project-title">Casino</div>
+        <button class="project-view-btn">查 看</button>
+      </div>
+    </div>
+
+    <div class="project-card" data-title="Casino">
+      <img class="project-img" src="https://res.cloudinary.com/dqp9eckcq/image/upload/v1770197521/%E5%9B%BE%E5%B1%82_27_advl68.png" alt="Casino" loading="lazy">
+      <div class="project-hover">
+        <div class="project-title">Casino</div>
+        <button class="project-view-btn">查 看</button>
+      </div>
+    </div>
+
+    <div class="project-card" data-title="Casino">
+      <img class="project-img" src="https://res.cloudinary.com/dqp9eckcq/image/upload/v1770197556/%E5%9B%BE%E5%B1%82_35_inj2rl.png" alt="Casino" loading="lazy">
+      <div class="project-hover">
+        <div class="project-title">Casino</div>
+        <button class="project-view-btn">查 看</button>
+      </div>
+    </div>
+
+    <div class="project-card" data-title="Casino">
+      <img class="project-img" src="https://res.cloudinary.com/dqp9eckcq/image/upload/v1770197550/%E5%9B%BE%E5%B1%82_39_wnpwes.png" alt="Casino" loading="lazy">
+      <div class="project-hover">
+        <div class="project-title">Casino</div>
+        <button class="project-view-btn">查 看</button>
+      </div>
+    </div>
+
+    <div class="project-card" data-title="Casino">
+      <img class="project-img" src="https://res.cloudinary.com/dqp9eckcq/image/upload/v1770197543/%E5%9B%BE%E5%B1%82_34_slh3xg.png" alt="Casino" loading="lazy">
+      <div class="project-hover">
+        <div class="project-title">Casino</div>
+        <button class="project-view-btn">查 看</button>
+      </div>
+    </div>
+
+    <div class="project-card" data-title="Casino">
+      <img class="project-img" src="https://res.cloudinary.com/dqp9eckcq/image/upload/v1770197538/Snipaste_2025-11-03_16-57-57_qicews.png" alt="Casino" loading="lazy">
+      <div class="project-hover">
+        <div class="project-title">Casino</div>
+        <button class="project-view-btn">查 看</button>
+      </div>
+    </div>
+
+    <div class="project-card" data-title="Casino">
+      <img class="project-img" src="https://res.cloudinary.com/dqp9eckcq/image/upload/v1770197669/050_ord5lo.png" alt="Casino" loading="lazy">
+      <div class="project-hover">
+        <div class="project-title">Casino</div>
+        <button class="project-view-btn">查 看</button>
+      </div>
+    </div>
+
+    <div class="project-card" data-title="Casino">
+      <img class="project-img" src="https://res.cloudinary.com/dqp9eckcq/image/upload/v1774643957/H5%E9%A6%96%E9%A1%B5%E5%BC%B9%E7%AA%97_suzrkd.png" alt="Casino" loading="lazy">
+      <div class="project-hover">
+        <div class="project-title">Casino</div>
+        <button class="project-view-btn">查 看</button>
+      </div>
+    </div>
+
+    <div class="project-card" data-title="Casino">
+      <img class="project-img" src="https://res.cloudinary.com/dqp9eckcq/image/upload/v1774643961/WEB%E6%B4%BB%E5%8A%A8%E4%B8%93%E9%A2%98%E5%9B%BE_ycr9l5.png" alt="Casino" loading="lazy">
+      <div class="project-hover">
+        <div class="project-title">Casino</div>
+        <button class="project-view-btn">查 看</button>
+      </div>
+    </div>
+
+    <div class="project-card" data-title="Casino">
+      <img class="project-img" src="https://res.cloudinary.com/dqp9eckcq/image/upload/v1774643986/WEB%E6%B4%BB%E5%8A%A8%E4%B8%93%E9%A2%98%E5%9B%BE_gypswv.png" alt="Casino" loading="lazy">
+      <div class="project-hover">
+        <div class="project-title">Casino</div>
+        <button class="project-view-btn">查 看</button>
+      </div>
+    </div>
+
+    <div class="project-card" data-title="Casino">
+      <img class="project-img" src="https://res.cloudinary.com/dqp9eckcq/image/upload/v1774644025/WEB%E9%A6%96%E9%A1%B5%E7%AA%972_vcc7lb.png" alt="Casino" loading="lazy">
+      <div class="project-hover">
+        <div class="project-title">Casino</div>
+        <button class="project-view-btn">查 看</button>
+      </div>
+    </div>
+
+    <div class="project-card" data-title="Casino">
+      <img class="project-img" src="https://res.cloudinary.com/dqp9eckcq/image/upload/v1774644343/%E6%B5%8B%E8%AF%9501_nk9na7.png" alt="Casino" loading="lazy">
+      <div class="project-hover">
+        <div class="project-title">Casino</div>
+        <button class="project-view-btn">查 看</button>
+      </div>
+    </div>
+
+    <div class="project-card" data-title="Casino">
+      <img class="project-img" src="https://res.cloudinary.com/dqp9eckcq/image/upload/v1774644344/%E6%B5%8B%E8%AF%9503_j5lxty.png" alt="Casino" loading="lazy">
+      <div class="project-hover">
+        <div class="project-title">Casino</div>
+        <button class="project-view-btn">查 看</button>
+      </div>
+    </div>
+
+    <div class="project-card" data-title="Casino">
+      <img class="project-img" src="https://res.cloudinary.com/dqp9eckcq/image/upload/v1774644346/%E6%B5%8B%E8%AF%9502_ahvtm6.png" alt="Casino" loading="lazy">
+      <div class="project-hover">
+        <div class="project-title">Casino</div>
+        <button class="project-view-btn">查 看</button>
+      </div>
+    </div>
+
+    <div class="project-card" data-title="Casino WEB">
+      <img class="project-img" src="https://res.cloudinary.com/dqp9eckcq/image/upload/v1770197636/00_w2xcql.png" alt="Casino WEB" loading="lazy">
+      <div class="project-hover">
+        <div class="project-title">Casino WEB</div>
+        <button class="project-view-btn">查 看</button>
+      </div>
+    </div>
+
+    <div class="project-card" data-title="Casino WEB">
+      <img class="project-img" src="https://res.cloudinary.com/dqp9eckcq/image/upload/v1770197634/01_uxtm3y.png" alt="Casino WEB" loading="lazy">
+      <div class="project-hover">
+        <div class="project-title">Casino WEB</div>
+        <button class="project-view-btn">查 看</button>
+      </div>
+    </div>
+
+    <div class="project-card" data-title="Casino WEB">
+      <img class="project-img" src="https://res.cloudinary.com/dqp9eckcq/image/upload/v1770197626/%E7%BB%84_2_%E6%8B%B7%E8%B4%9D_10_steak7.png" alt="Casino WEB" loading="lazy">
+      <div class="project-hover">
+        <div class="project-title">Casino WEB</div>
+        <button class="project-view-btn">查 看</button>
+      </div>
+    </div>
+
+    <div class="project-card" data-title="ICON设计">
+      <img class="project-img" src="https://res.cloudinary.com/dqp9eckcq/image/upload/v1770197652/130_iuhug7.png" alt="ICON设计" loading="lazy">
+      <div class="project-hover">
+        <div class="project-title">ICON设计</div>
+        <button class="project-view-btn">查 看</button>
+      </div>
+    </div>
+
+<div class="project-card" data-title="其他设计">
+      <img class="project-img" src="https://res.cloudinary.com/dqp9eckcq/image/upload/v1770197662/%E7%BB%84_2_%E6%8B%B7%E8%B4%9D_11_kxq3bf.png" alt="其他设计" loading="lazy">
+      <div class="project-hover">
+        <div class="project-title">其他设计</div>
+        <button class="project-view-btn">查 看</button>
+      </div>
+    </div>
+
+    <div class="project-card" data-title="其他设计">
+      <img class="project-img" src="https://res.cloudinary.com/dqp9eckcq/image/upload/v1770300104/1vip_dorx3b.png" alt="其他设计" loading="lazy">
+      <div class="project-hover">
+        <div class="project-title">其他设计</div>
+        <button class="project-view-btn">查 看</button>
+      </div>
+    </div>
+
+    <div class="project-card" data-title="其他设计">
+      <img class="project-img" src="https://res.cloudinary.com/dqp9eckcq/image/upload/v1770300111/91vlog%E8%87%B3%E5%B0%8A%E5%8D%A1_ei13hs.png" alt="其他设计" loading="lazy">
+      <div class="project-hover">
+        <div class="project-title">其他设计</div>
+        <button class="project-view-btn">查 看</button>
+      </div>
+    </div>
+
+    <div class="project-card" data-title="其他设计">
+      <img class="project-img" src="https://res.cloudinary.com/dqp9eckcq/image/upload/v1770300118/750_1260_i6ehce.png" alt="其他设计" loading="lazy">
+      <div class="project-hover">
+        <div class="project-title">其他设计</div>
+        <button class="project-view-btn">查 看</button>
+      </div>
+    </div>
+
+    <div class="project-card" data-title="其他设计">
+      <img class="project-img" src="https://res.cloudinary.com/dqp9eckcq/image/upload/v1770300119/51%E7%9F%AD%E8%A7%86%E9%A2%91%E8%90%BD%E5%9C%B0%E9%A1%B53_y9na3g.png" alt="其他设计" loading="lazy">
+      <div class="project-hover">
+        <div class="project-title">其他设计</div>
+        <button class="project-view-btn">查 看</button>
+      </div>
+    </div>
+
+    <div class="project-card" data-title="其他设计">
+      <img class="project-img" src="https://res.cloudinary.com/dqp9eckcq/image/upload/v1770300152/0001x_z5ls9x.png" alt="其他设计" loading="lazy">
+      <div class="project-hover">
+        <div class="project-title">其他设计</div>
+        <button class="project-view-btn">查 看</button>
+      </div>
+    </div>
+
+    <div class="project-card" data-title="其他设计">
+      <img class="project-img" src="https://res.cloudinary.com/dqp9eckcq/image/upload/v1770300159/%E7%94%BB%E6%9D%BF_1_2_s8iq25.png" alt="其他设计" loading="lazy">
+      <div class="project-hover">
+        <div class="project-title">其他设计</div>
+        <button class="project-view-btn">查 看</button>
+      </div>
+    </div>
+
+    <div class="project-card" data-title="其他设计">
+      <img class="project-img" src="https://res.cloudinary.com/dqp9eckcq/image/upload/v1770300166/zsa_case1e.png" alt="其他设计" loading="lazy">
+      <div class="project-hover">
+        <div class="project-title">其他设计</div>
+        <button class="project-view-btn">查 看</button>
+      </div>
+    </div>
+
+    <div class="project-card" data-title="其他设计">
+      <img class="project-img" src="https://res.cloudinary.com/dqp9eckcq/image/upload/v1770300165/vds_qh1vkp.png" alt="其他设计" loading="lazy">
+      <div class="project-hover">
+        <div class="project-title">其他设计</div>
+        <button class="project-view-btn">查 看</button>
+      </div>
+    </div>
+
+    <div class="project-card" data-title="设计练习">
+      <img class="project-img" src="https://res.cloudinary.com/dqp9eckcq/image/upload/v1775088145/e5eb154e334644858ab19778fc1c04fb_m9mivv.jpg" alt="设计练习" loading="lazy">
+      <div class="project-hover">
+        <div class="project-title">设计练习</div>
+        <button class="project-view-btn">查 看</button>
+      </div>
+    </div>
+
+    <div class="project-card" data-title="设计练习">
+      <img class="project-img" src="https://res.cloudinary.com/dqp9eckcq/image/upload/v1775088146/bf2f6a7f7bcca005abecf83201dde68e_a2ltfh.jpg" alt="设计练习" loading="lazy">
+      <div class="project-hover">
+        <div class="project-title">设计练习</div>
+        <button class="project-view-btn">查 看</button>
+      </div>
+    </div>
+
+    <div class="project-card" data-title="设计练习">
+      <img class="project-img" src="https://res.cloudinary.com/dqp9eckcq/image/upload/v1775088148/%E6%9C%AA%E6%A0%87%E9%A2%98-1_upscayl_3x_upscayl-standard-4x_c2iveg.png" alt="设计练习" loading="lazy">
+      <div class="project-hover">
+        <div class="project-title">设计练习</div>
+        <button class="project-view-btn">查 看</button>
+      </div>
+    </div>
+
+    <div class="project-card" data-title="设计练习">
+      <img class="project-img" src="https://res.cloudinary.com/dqp9eckcq/image/upload/v1775088149/727406339fdce05c2949b3b7113e38a3_upscayl_3x_upscayl-standard-4x_ntza0g.png" alt="设计练习" loading="lazy">
+      <div class="project-hover">
+        <div class="project-title">设计练习</div>
+        <button class="project-view-btn">查 看</button>
+      </div>
+    </div>
+
+    <div class="project-card" data-title="设计练习">
+      <img class="project-img" src="https://res.cloudinary.com/dqp9eckcq/image/upload/v1775088149/e3c23aba96b146c6d99ba4c08572dd94_upscayl_2x_upscayl-standard-4x_iierb2.png" alt="设计练习" loading="lazy">
+      <div class="project-hover">
+        <div class="project-title">设计练习</div>
+        <button class="project-view-btn">查 看</button>
+      </div>
+    </div>
+
+    <div class="project-card" data-title="设计练习">
+      <img class="project-img" src="https://res.cloudinary.com/dqp9eckcq/image/upload/v1775088149/Gemini_Generated_Image_re2ff9re2ff9re2f_upscayl_2x_upscayl-standard-4x_wxzkom.png" alt="设计练习" loading="lazy">
+      <div class="project-hover">
+        <div class="project-title">设计练习</div>
+        <button class="project-view-btn">查 看</button>
+      </div>
+    </div>
+
+    <div class="project-card" data-title="设计练习">
+      <img class="project-img" src="https://res.cloudinary.com/dqp9eckcq/image/upload/v1775088151/%E6%9C%AA%E6%A0%87%E9%A2%98-1_upscayl_2x_upscayl-standard-4x-2_x88ldm.png" alt="设计练习" loading="lazy">
+      <div class="project-hover">
+        <div class="project-title">设计练习</div>
+        <button class="project-view-btn">查 看</button>
+      </div>
+    </div>
+
+    <!-- 继续添加：复制下方注释模板
+    <div class="project-card" data-title="作品标题">
+      <img class="project-img" src="图片URL" alt="作品标题" loading="lazy">
+      <div class="project-hover">
+        <div class="project-title">作品标题</div>
+        <button class="project-view-btn">查 看</button>
+      </div>
+    </div>
+    -->
+  </div>
+</section>
+
+<!-- EXPERIENCE -->
+<section id="experience">
+  <div class="section-label reveal">Experience</div>
+  <div class="exp-grid reveal">
+    <div class="exp-item">
+      <div class="exp-period">2023.11 – 2025.05</div>
+      <div class="exp-title">UI 设计主管</div>
+      <div class="exp-company">迪拜红龙科技</div>
+      <div class="exp-desc"><ul>
+        <li>• 组件化提效：在 Figma 中建立了统一的 UI Library，规范了颜色、字体等基础组件，使设计到开发的协作效率显著提升。</li>
+        <li>• 决策参与：作为专家参与产品研讨会，从交互动效与视觉心理视角提供方案建议。</li>
+        <li>• 品牌物料设计：负责海外市场活动全套视觉方案，包括高转化率的运营 Banner、专题活动页及启动页，确保品牌视觉在全球市场的统一性。</li>
+      </ul></div>
+    </div>
+    <div class="exp-item">
+      <div class="exp-period">2021.01 – 2023.10</div>
+      <div class="exp-title">UI 设计总监</div>
+      <div class="exp-company">重庆网蛙科技</div>
+      <div class="exp-desc"><ul>
+        <li>• 组件化提效：在 Figma 中建立了统一的 UI Library，规范了颜色、字体等基础组件，使设计到开发的协作效率显著提升。</li>
+        <li>• 全流程把控：从用户路径分析、线框图绘制到高保真视觉输出，主导了产品 1.0 到 3.0 的核心迭代。</li>
+        <li>• 数据驱动迭代：持续关注 Google Play 转化数据，通过 A/B Test 优化落地页与商店素材，将 App 下载转化率提升约 15%。</li>
+      </ul></div>
+    </div>
+    <div class="exp-item">
+      <div class="exp-period">2018.06 – 2020.12</div>
+      <div class="exp-title">UI 设计主管</div>
+      <div class="exp-company">中国民航信息网络</div>
+      <div class="exp-desc"><ul>
+        <li>• 系统化重构：针对极其复杂的 B 端后台（集团内网/OA），进行了全面的体验重构，将原本冗长的操作路径简化了 40%。</li>
+        <li>• 视觉规范制定：搭建了集团级设计规范指南，负责内部设计师的专业评审与技能内训。</li>
+      </ul></div>
+    </div>
+    <div class="exp-item">
+      <div class="exp-period">2015.05 – 2017.02</div>
+      <div class="exp-title">UI 设计师</div>
+      <div class="exp-company">马上消费金融</div>
+      <div class="exp-desc"><ul>
+        <li>• 标杆产品打造：独立完成"安逸花"App 早期视觉风格定义，并在内部设计竞标中获得第一名。</li>
+        <li>• 品牌 IP 孵化：操刀设计了公司首个卡通 IP 形象，并广泛应用于 App 运营、营销周边，建立了品牌辨识度。</li>
+      </ul></div>
+    </div>
+  </div>
+</section>
+
+<!-- SKILLS RINGS -->
+<section style="background:var(--mid);max-width:100%;padding:80px 48px;border-top:1px solid var(--border);border-bottom:1px solid var(--border);">
+  <div style="max-width:1200px;margin:0 auto;">
+    <div class="section-label reveal">Proficiency</div>
+    <div class="radar-wrap">
+      <div class="skill-ring reveal">
+        <svg class="ring-svg" viewBox="0 0 100 100"><circle class="ring-bg" cx="50" cy="50" r="40"/><circle class="ring-fill" cx="50" cy="50" r="40" data-pct="90"/></svg>
+        <div class="ring-label">UI Design</div><div class="ring-pct">90%</div>
+      </div>
+      <div class="skill-ring reveal" style="transition-delay:0.1s">
+        <svg class="ring-svg" viewBox="0 0 100 100"><circle class="ring-bg" cx="50" cy="50" r="40"/><circle class="ring-fill" cx="50" cy="50" r="40" data-pct="85"/></svg>
+        <div class="ring-label">UX Research</div><div class="ring-pct">85%</div>
+      </div>
+      <div class="skill-ring reveal" style="transition-delay:0.2s">
+        <svg class="ring-svg" viewBox="0 0 100 100"><circle class="ring-bg" cx="50" cy="50" r="40"/><circle class="ring-fill" cx="50" cy="50" r="40" data-pct="88"/></svg>
+        <div class="ring-label">Branding</div><div class="ring-pct">88%</div>
+      </div>
+      <div class="skill-ring reveal" style="transition-delay:0.3s">
+        <svg class="ring-svg" viewBox="0 0 100 100"><circle class="ring-bg" cx="50" cy="50" r="40"/><circle class="ring-fill" cx="50" cy="50" r="40" data-pct="82"/></svg>
+        <div class="ring-label">Prototyping</div><div class="ring-pct">82%</div>
+      </div>
+      <div class="skill-ring reveal" style="transition-delay:0.4s">
+        <svg class="ring-svg" viewBox="0 0 100 100"><circle class="ring-bg" cx="50" cy="50" r="40"/><circle class="ring-fill" cx="50" cy="50" r="40" data-pct="92"/></svg>
+        <div class="ring-label">Design Systems</div><div class="ring-pct">92%</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- EDUCATION -->
+<section id="education">
+  <div class="section-label reveal">Education</div>
+  <div class="edu-list reveal">
+    <div class="edu-item">
+      <div class="edu-period">2009 — 2013</div>
+      <div><div class="edu-school">长江师范学院</div><div class="edu-degree">艺术设计</div></div>
+      <div class="edu-badge">本科</div>
+    </div>
+    <div class="edu-item">
+      <div class="edu-period">正在进行中</div>
+      <div><div class="edu-school">AI Agent · AICG</div><div class="edu-degree">不断探索新兴设计技术</div></div>
+      <div class="edu-badge">∞</div>
+    </div>
+  </div>
+</section>
+
+<!-- CONTACT (FIX 2: 两侧线条居中) -->
+<div class="contact-section" id="contact">
+  <div class="contact-label reveal">Contact</div>
+  <div class="contact-big reveal">LET'S WORK<br>TOGETHER</div>
+  <div class="contact-links reveal">
+    <a href="mailto:mikuslei2025@gmail.com" class="contact-email">
+      <span class="contact-icon">MAIL</span>mikuslei2025@gmail.com
+    </a>
+    <a href="https://t.me/Felix0078" target="_blank" class="contact-tg">
+      <span class="contact-icon">TG</span>https://t.me/Felix0078
+    </a>
+  </div>
+</div>
+
+<script>
+/* ── PARTICLES ── */
+(function(){
+  const canvas = document.getElementById('particle-canvas');
+  const ctx = canvas.getContext('2d');
+  let W, H, particles=[];
+  const ACID='rgba(200,255,0,', COUNT=90;
+  function resize(){ W=canvas.width=window.innerWidth; H=canvas.height=window.innerHeight; }
+  function rand(a,b){ return Math.random()*(b-a)+a; }
+  function mkP(){ return { x:rand(0,W), y:rand(0,H), vx:rand(-0.18,0.18), vy:rand(-0.18,0.18), r:rand(0.8,2.2), alpha:rand(0.1,0.55), pulse:rand(0,Math.PI*2), ps:rand(0.008,0.022) }; }
+  function init(){ particles=[]; for(let i=0;i<COUNT;i++) particles.push(mkP()); }
+  function draw(){
+    ctx.clearRect(0,0,W,H);
+    for(let i=0;i<particles.length;i++){
+      for(let j=i+1;j<particles.length;j++){
+        const dx=particles[i].x-particles[j].x, dy=particles[i].y-particles[j].y;
+        const d=Math.sqrt(dx*dx+dy*dy);
+        if(d<130){ ctx.beginPath(); ctx.strokeStyle=ACID+(1-d/130)*0.12+')'; ctx.lineWidth=0.6; ctx.moveTo(particles[i].x,particles[i].y); ctx.lineTo(particles[j].x,particles[j].y); ctx.stroke(); }
+      }
+    }
+    particles.forEach(p=>{
+      p.pulse+=p.ps;
+      ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+      ctx.fillStyle=ACID+p.alpha*(0.7+0.3*Math.sin(p.pulse))+')'; ctx.fill();
+      p.x+=p.vx; p.y+=p.vy;
+      if(p.x<-10)p.x=W+10; if(p.x>W+10)p.x=-10;
+      if(p.y<-10)p.y=H+10; if(p.y>H+10)p.y=-10;
+    });
+    requestAnimationFrame(draw);
+  }
+  window.addEventListener('resize', resize);
+  resize(); init(); draw();
+})();
+
+/* ── LOADER ── */
+window.addEventListener('load',()=>setTimeout(()=>document.getElementById('loader').classList.add('hidden'),800));
+
+/* ── CURSOR ── */
+const cursor=document.getElementById('cursor'), ring=document.getElementById('cursor-ring');
+let mx=0,my=0,rx=0,ry=0;
+document.addEventListener('mousemove',e=>{ mx=e.clientX; my=e.clientY; cursor.style.left=mx+'px'; cursor.style.top=my+'px'; });
+(function anim(){ rx+=(mx-rx)*0.12; ry+=(my-ry)*0.12; ring.style.left=rx+'px'; ring.style.top=ry+'px'; requestAnimationFrame(anim); })();
+document.querySelectorAll('a,button,.project-card,.stat-item,.skill-ring').forEach(el=>{
+  el.addEventListener('mouseenter',()=>{ cursor.style.transform='translate(-50%,-50%) scale(2.5)'; ring.style.transform='translate(-50%,-50%) scale(1.5)'; ring.style.opacity='0.2'; });
+  el.addEventListener('mouseleave',()=>{ cursor.style.transform='translate(-50%,-50%) scale(1)'; ring.style.transform='translate(-50%,-50%) scale(1)'; ring.style.opacity='0.5'; });
+});
+
+/* ── LIGHTBOX (FIX 4+5) ── */
+const lightbox=document.getElementById('lightbox');
+const lbImg=document.getElementById('lb-img');
+const lbClose=document.getElementById('lb-close');
+const lbToolbar=document.getElementById('lb-toolbar');
+const lbBackdrop=document.getElementById('lb-backdrop');
+const lbScaleLabel=document.getElementById('lb-scale-label');
+let lbScale=1;
+
+function setScale(s){
+  lbScale=Math.max(0.2,Math.min(6,s));
+  lbImg.style.transform=`scale(${lbScale})`;
+  lbScaleLabel.textContent=Math.round(lbScale*100)+'%';
+}
+function openLightbox(src){
+  lbImg.src=src; lbScale=1;
+  lbImg.style.transform='scale(1)'; lbScaleLabel.textContent='100%';
+  lightbox.classList.add('open');
+  lbClose.classList.add('show');
+  lbToolbar.classList.add('show');
+  document.body.style.overflow='hidden';
+}
+function closeLightbox(){
+  lightbox.classList.remove('open');
+  lbClose.classList.remove('show');
+  lbToolbar.classList.remove('show');
+  document.body.style.overflow='';
+  setTimeout(()=>{ lbImg.src=''; },400);
+}
+lbClose.addEventListener('click', closeLightbox);
+lbBackdrop.addEventListener('click', closeLightbox);
+document.getElementById('lb-zoom-in').addEventListener('click',()=>setScale(lbScale+0.2));
+document.getElementById('lb-zoom-out').addEventListener('click',()=>setScale(lbScale-0.2));
+document.getElementById('lb-zoom-reset').addEventListener('click',()=>setScale(1));
+lightbox.addEventListener('wheel',e=>{ if(!lightbox.classList.contains('open'))return; e.preventDefault(); setScale(lbScale+(e.deltaY<0?0.15:-0.15)); },{passive:false});
+document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeLightbox(); });
+document.getElementById('projects-grid').addEventListener('click',e=>{
+  const btn=e.target.closest('.project-view-btn');
+  if(btn){ const img=btn.closest('.project-card').querySelector('.project-img'); openLightbox(img.src); }
+});
+
+/* ── SCROLL REVEAL ── */
+const reveals=document.querySelectorAll('.reveal');
+const observer=new IntersectionObserver((entries)=>{
+  entries.forEach(entry=>{
+    if(entry.isIntersecting){
+      entry.target.classList.add('visible');
+      entry.target.querySelectorAll('.skill-fill').forEach(b=>b.style.width=b.dataset.pct+'%');
+      entry.target.querySelectorAll('.ring-fill').forEach(r=>{ r.style.strokeDashoffset=(2*Math.PI*40)*(1-parseInt(r.dataset.pct)/100); });
+      entry.target.querySelectorAll('[data-count]').forEach(el=>{
+        const t=parseInt(el.dataset.count), sfx=el.textContent.replace(/[0-9]/g,''); let s=0;
+        const step=()=>{ s+=Math.ceil(t/60); if(s>=t){el.textContent=t+sfx;return;} el.textContent=s+sfx; requestAnimationFrame(step); };
+        step();
+      });
+    }
+  });
+},{threshold:0.15});
+reveals.forEach(el=>observer.observe(el));
+
+const skillObs=new IntersectionObserver(e=>e.forEach(x=>{ if(x.isIntersecting) x.target.style.width=x.target.dataset.pct+'%'; }),{threshold:0.1});
+document.querySelectorAll('.skill-fill').forEach(el=>skillObs.observe(el));
+
+const ringObs=new IntersectionObserver(e=>e.forEach(x=>{ if(x.isIntersecting) x.target.style.strokeDashoffset=(2*Math.PI*40)*(1-parseInt(x.target.dataset.pct)/100); }),{threshold:0.1});
+document.querySelectorAll('.ring-fill').forEach(el=>ringObs.observe(el));
+
+/* ── SCROLL ── */
+window.addEventListener('scroll',()=>{
+  const bg=document.querySelector('.hero-bg-text');
+  if(bg) bg.style.transform=`translateY(${window.scrollY*0.3}px)`;
+  const btn=document.getElementById('back-to-top');
+  window.scrollY>400?btn.classList.add('visible'):btn.classList.remove('visible');
+});
+</script>
+</body>
+</html>
